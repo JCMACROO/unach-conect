@@ -6,8 +6,10 @@ import { supabase } from '../supabaseClient';
 
 export default function TutorApply() {
   const [user, setUser] = useState(null);
-  const [subject, setSubject] = useState('');
-  const [professor, setProfessor] = useState('');
+  const [subjectsList, setSubjectsList] = useState([]);
+  const [professorsList, setProfessorsList] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedProfessorId, setSelectedProfessorId] = useState('');
   const [grade, setGrade] = useState('');
   const [bio, setBio] = useState('');
   const [file, setFile] = useState(null);
@@ -17,21 +19,67 @@ export default function TutorApply() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndLoadCatalogs = async () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) {
         navigate('/login');
-      } else {
-        setUser(authUser);
+        return;
+      }
+      setUser(authUser);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const token = session.access_token;
+
+        // Fetch Graphic Design subjects from Laravel API
+        const subjectsRes = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (subjectsRes.ok) {
+          const subjectsData = await subjectsRes.json();
+          setSubjectsList(subjectsData);
+        } else {
+          console.error('Error fetching subjects');
+        }
+
+        // Fetch Graphic Design professors from Laravel API
+        const professorsRes = await fetch(`${import.meta.env.VITE_API_URL}/professors`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (professorsRes.ok) {
+          const professorsData = await professorsRes.json();
+          setProfessorsList(professorsData);
+        } else {
+          console.error('Error fetching professors');
+        }
+      } catch (err) {
+        console.error('Error loading Graphic Design catalogs:', err);
+        setError('Error al conectar con el servidor para cargar las asignaturas y docentes.');
       }
     };
-    checkAuth();
+
+    checkAuthAndLoadCatalogs();
   }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (!selectedSubjectId) {
+      setError('Por favor, selecciona una materia de diseño gráfico.');
+      return;
+    }
+
+    if (!selectedProfessorId) {
+      setError('Por favor, selecciona al docente con el que aprobaste la materia.');
+      return;
+    }
 
     if (parseFloat(grade) < 8.5) {
       setError('Postulación rechazada: Se requiere una nota mínima de 8.5 para ser tutor.');
@@ -68,21 +116,33 @@ export default function TutorApply() {
         publicUrl = publicUrlData?.publicUrl || '';
       }
 
-      // 2. Insert/Upsert Tutor application details
-      const { error: tutorError } = await supabase
-        .from('tutors')
-        .upsert([
-          {
-            id: user.id,
-            bio: bio,
-            portfolio_url: publicUrl,
-            status: 'pending'
-          }
-        ]);
+      // 2. Submit via Laravel API (will insert into tutors and tutor_subjects)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
-      if (tutorError) throw tutorError;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/tutors/apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          subject_id: parseInt(selectedSubjectId),
+          professor_id: parseInt(selectedProfessorId),
+          grade: parseFloat(grade),
+          bio: bio,
+          portfolio_url: publicUrl,
+          price_per_hour: 5.00 // Standard credit price per hour for graphic design tutoring
+        })
+      });
 
-      setSuccess('Tu postulación ha sido enviada con éxito. Está en cola de revisión por la administración.');
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || 'Error al enviar la postulación al servidor.');
+      }
+
+      setSuccess('Tu postulación como tutor ha sido enviada con éxito. Está en cola de revisión por el administrador.');
       
       setTimeout(() => {
         navigate('/dashboard');
@@ -106,7 +166,7 @@ export default function TutorApply() {
             <img src={logoNegativo} alt="UNACH-Connect Logo" className="auth-logo" />
           </Link>
           <h2>Postular como Tutor</h2>
-          <p className="auth-subtitle">Conviértete en referente académico de la facultad</p>
+          <p className="auth-subtitle">Conviértete en referente académico de Diseño Gráfico</p>
         </div>
 
         {error && (
@@ -125,40 +185,52 @@ export default function TutorApply() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="subject">Materia Crítica a Dictar</label>
-            <input
-              type="text"
+            <label htmlFor="subject">Materia Crítica a Dictar (Diseño Gráfico)</label>
+            <select
               id="subject"
-              placeholder="Ej. Geometría Descriptiva, Tipografía II"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
               required
-              disabled={loading}
+              disabled={loading || subjectsList.length === 0}
               className="form-input"
-            />
+              style={{ backgroundColor: 'rgba(15, 23, 42, 0.85)', color: 'var(--text-primary)' }}
+            >
+              <option value="">-- Selecciona una Materia --</option>
+              {subjectsList.map((subj) => (
+                <option key={subj.id} value={subj.id}>
+                  {subj.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="professor">Docente con quien aprobó la materia</label>
-            <input
-              type="text"
+            <label htmlFor="professor">Docente con quien aprobaste la materia</label>
+            <select
               id="professor"
-              placeholder="Ej. Dis. Carlos Fuentes"
-              value={professor}
-              onChange={(e) => setProfessor(e.target.value)}
+              value={selectedProfessorId}
+              onChange={(e) => setSelectedProfessorId(e.target.value)}
               required
-              disabled={loading}
+              disabled={loading || professorsList.length === 0}
               className="form-input"
-            />
+              style={{ backgroundColor: 'rgba(15, 23, 42, 0.85)', color: 'var(--text-primary)' }}
+            >
+              <option value="">-- Selecciona al Docente --</option>
+              {professorsList.map((prof) => (
+                <option key={prof.id} value={prof.id}>
+                  {prof.name} ({prof.department})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="grade">Calificación final obtenida (sobre 10)</label>
+            <label htmlFor="grade">Calificación final obtenida (mínimo 8.5/10)</label>
             <input
               type="number"
               id="grade"
               step="0.01"
-              min="0"
+              min="8.5"
               max="10"
               placeholder="Ej. 9.15"
               value={grade}
@@ -170,11 +242,11 @@ export default function TutorApply() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="bio">Biografía / Mensaje de presentación</label>
+            <label htmlFor="bio">Biografía / Enfoque de Especialidad</label>
             <textarea
               id="bio"
               rows="3"
-              placeholder="Cuéntanos por qué eres el tutor ideal para esta materia..."
+              placeholder="Ej. Especializado en vectorización e ilustración digital. Te ayudo a dominar Adobe Illustrator y técnicas tipográficas..."
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               required
@@ -184,7 +256,7 @@ export default function TutorApply() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="file">Reporte de calificaciones (Kardex) o Portafolio (PDF)</label>
+            <label htmlFor="file">Reporte de Calificaciones (Kardex) o Portafolio (PDF)</label>
             <input
               type="file"
               id="file"
@@ -200,7 +272,7 @@ export default function TutorApply() {
             <button type="submit" className="auth-submit-btn" disabled={loading}>
               {loading ? 'Enviando postulación...' : 'Enviar Postulación'}
             </button>
-            <Link to="/dashboard" className="btn-cancel">Cancelar</Link>
+            <Link to="/dashboard" className="btn-cancel" style={{ marginLeft: '12px', color: 'var(--text-secondary)' }}>Cancelar</Link>
           </div>
         </form>
       </div>

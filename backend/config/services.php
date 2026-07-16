@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'supabase' => [
+        'jwt_secret' => env('SUPABASE_JWT_SECRET'),
+        'anon_key' => env('SUPABASE_ANON_KEY'),
+    ],
+
 ];

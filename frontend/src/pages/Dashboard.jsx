@@ -136,6 +136,12 @@ export default function Dashboard() {
         </div>
         <nav className="landing-nav">
           <span className="user-welcome">Hola, {profile.full_name}</span>
+          {profile.role === 'admin' && (
+            <Link to="/admin/dashboard" className="nav-link" style={{ marginRight: '15px', color: '#fca5a5', fontWeight: 'bold' }}>Panel Admin</Link>
+          )}
+          {profile.role === 'partner' && (
+            <Link to="/partner/redeem" className="nav-link" style={{ marginRight: '15px', color: '#a7f3d0', fontWeight: 'bold' }}>Canjes</Link>
+          )}
           <button onClick={handleLogout} className="logout-btn">Cerrar Sesión</button>
         </nav>
       </header>
@@ -159,27 +165,61 @@ export default function Dashboard() {
 
           {/* Right panel: Tutor status & applications */}
           <div className="dashboard-card status-card">
-            <h2>Postular como Tutor</h2>
-            <p className="card-desc">¿Aprobaste una materia crítica con excelente nota y deseas ganar créditos ayudando a tus compañeros?</p>
-            
-            <div className="tutor-badge pending-badge">
-              <span>Rol actual: {tutorStatus === 'approved' ? 'Tutor Referente' : 'Alumno'}</span>
-            </div>
+            {profile.role === 'admin' ? (
+              <>
+                <h2>Panel de Administración</h2>
+                <p className="card-desc">Tienes privilegios de Administrador para gestionar el catálogo y las postulaciones de tutores.</p>
+                
+                <div className="tutor-badge" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', padding: '6px 12px', borderRadius: '20px', display: 'inline-block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '16px' }}>
+                  <span>Rol actual: Administrador</span>
+                </div>
 
-            <div className="tutor-application-promo">
-              {tutorStatus === 'pending' && (
-                <p style={{ color: 'var(--warning)', fontWeight: 'bold' }}>⚠️ Tu postulación está siendo revisada por la administración.</p>
-              )}
-              {tutorStatus === 'approved' && (
-                <p style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ ¡Eres un Tutor Aprobado! Ya puedes dictar clases y recibir créditos.</p>
-              )}
-              {(!tutorStatus || tutorStatus === 'suspended') && (
-                <>
-                  <p>Conviértete en "Referente" de la facultad. Se requiere una nota mínima de 8.5/10 y subir tu reporte de calificaciones (Kardex).</p>
-                  <Link to="/tutor/apply" className="btn-primary">Iniciar Postulación</Link>
-                </>
-              )}
-            </div>
+                <div className="tutor-application-promo" style={{ marginTop: '10px' }}>
+                  <Link to="/admin/dashboard" className="btn-primary" style={{ display: 'block', textAlign: 'center', backgroundColor: '#EF4444', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)' }}>
+                    Acceder al Panel Admin
+                  </Link>
+                </div>
+              </>
+            ) : profile.role === 'partner' ? (
+              <>
+                <h2>Portal de Comercio</h2>
+                <p className="card-desc">Tienes privilegios de Comercio Aliado para escanear y reclamar códigos de canje de ploteos y librerías.</p>
+                
+                <div className="tutor-badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#a7f3d0', padding: '6px 12px', borderRadius: '20px', display: 'inline-block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '16px' }}>
+                  <span>Rol actual: Comercio Aliado</span>
+                </div>
+
+                <div className="tutor-application-promo" style={{ marginTop: '10px' }}>
+                  <Link to="/partner/redeem" className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>
+                    Escanear Código de Canje
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>Postular como Tutor</h2>
+                <p className="card-desc">¿Aprobaste una materia crítica con excelente nota y deseas ganar créditos ayudando a tus compañeros?</p>
+                
+                <div className={`tutor-badge ${tutorStatus === 'approved' ? 'approved-badge' : 'pending-badge'}`}>
+                  <span>Rol actual: {tutorStatus === 'approved' ? 'Tutor Referente' : 'Alumno'}</span>
+                </div>
+
+                <div className="tutor-application-promo">
+                  {tutorStatus === 'pending' && (
+                    <p style={{ color: 'var(--warning)', fontWeight: 'bold' }}>⚠️ Tu postulación está siendo revisada por la administración.</p>
+                  )}
+                  {tutorStatus === 'approved' && (
+                    <p style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ ¡Eres un Tutor Aprobado! Ya puedes dictar clases y recibir créditos.</p>
+                  )}
+                  {(!tutorStatus || tutorStatus === 'suspended') && (
+                    <>
+                      <p>Conviértete en "Referente" de la Carrera. Se requiere una nota mínima de 8.5/10 y subir tu reporte de calificaciones (Kardex).</p>
+                      <Link to="/tutor/apply" className="btn-primary">Iniciar Postulación</Link>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

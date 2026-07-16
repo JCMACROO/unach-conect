@@ -36,8 +36,10 @@ sequenceDiagram
 ```
 
 ### Rutas Frontend Relacionadas (React)
-*   `/login`: Vista de acceso para alumnos existentes.
+*   `/login`: Vista de acceso para alumnos existentes (incluye enlace a recuperación).
 *   `/register`: Formulario de registro (restringe visualmente inputs que no terminen en `@unach.edu.ec`).
+*   `/forgot-password`: Formulario para solicitar el restablecimiento de contraseña enviando un correo.
+*   `/reset-password`: Formulario para ingresar y confirmar la nueva contraseña tras hacer clic en el enlace de correo.
 
 ---
 
@@ -179,6 +181,7 @@ El frontend utiliza `react-router-dom` con layouts compartidos basados en roles:
     *   `/` (Landing Page con visual estilo revista y Red Luminosa de partículas).
 *   **Páginas de Cuenta / Estudiantes (Alumno Base):**
     *   `/login` y `/register` (Acceso exclusivo `@unach.edu.ec`).
+    *   `/forgot-password` y `/reset-password` (Recuperación de credenciales).
     *   `/dashboard` (Resumen del perfil, billetera de créditos y solicitudes de tutorías).
     *   `/search` (Marketplace interactivo con filtros cruzados materia/profesor).
     *   `/tutors/:id` (Perfil detallado del tutor, portafolio y botón WhatsApp).
