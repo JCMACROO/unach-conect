@@ -20,11 +20,14 @@ WORKDIR /var/www/html
 # Copiar el código del proyecto
 COPY . .
 
+# Instalar dependencias de Composer para producción
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
 # Dar permisos a las carpetas de almacenamiento de Laravel
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Exponer el puerto del servidor de desarrollo de Laravel
 EXPOSE 8000
 
-# Comando para ejecutar el servidor de desarrollo de Laravel
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Comando para ejecutar el servidor de desarrollo de Laravel (soporta puerto dinámico de Railway)
+CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
