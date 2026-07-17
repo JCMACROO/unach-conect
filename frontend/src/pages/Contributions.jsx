@@ -59,15 +59,22 @@ export default function Contributions() {
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions?${params.toString()}`, {
         headers: {
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!res.ok) {
-        throw new Error('No se pudieron cargar las aportaciones del foro.');
+      let data = [];
+      try {
+        data = await res.json();
+      } catch (e) {
+        console.error('Failed to parse contributions JSON:', e);
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudieron cargar las aportaciones del foro.');
+      }
+
       setContributions(data);
     } catch (err) {
       console.error('Error loading contributions:', err);
@@ -103,6 +110,7 @@ export default function Contributions() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
@@ -113,7 +121,12 @@ export default function Contributions() {
         })
       });
 
-      const responseData = await res.json();
+      let responseData = {};
+      try {
+        responseData = await res.json();
+      } catch (e) {
+        console.error('Failed to parse store contribution JSON:', e);
+      }
 
       if (!res.ok) {
         throw new Error(responseData.error || 'Error al guardar la aportación.');
@@ -152,12 +165,19 @@ export default function Contributions() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions/${id}`, {
         method: 'DELETE',
         headers: {
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
 
+      let errorData = {};
+      try {
+        errorData = await res.json();
+      } catch (e) {
+        console.error('Failed to parse delete contribution JSON:', e);
+      }
+
       if (!res.ok) {
-        const errorData = await res.json();
         throw new Error(errorData.error || 'Error al eliminar el aporte.');
       }
 
