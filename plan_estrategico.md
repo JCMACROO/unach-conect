@@ -153,7 +153,35 @@ Un flujo rápido de contacto que evita largos formularios para Mateo.
 
 ---
 
-## 7. Arquitectura de Endpoints (Backend Laravel API)
+## 7. Módulo 7: Portal de Aportaciones Estudiantiles (Foro de Recursos)
+
+Este módulo fomenta la colaboración académica descentralizada permitiendo que cualquier estudiante comparta recursos y guías de auto-estudio.
+
+### Reglas de Negocio
+1. **Acceso:** Todos los estudiantes autenticados pueden ver la lista de aportes y publicar contenido.
+2. **Campos Requeridos:**
+    *   **Título** del recurso o aportación.
+    *   **Descripción** detallada o explicación.
+    *   **Categoría:** Tipo de recurso (`tutorial`, `recurso`, `consejo_general`).
+    *   **URL del Recurso:** Enlace externo obligatorio (ej. OneDrive, Google Drive, YouTube, GitHub).
+3. **Propiedad y Moderación:**
+    *   Un alumno solo puede eliminar o editar sus propios aportes.
+    *   Los administradores pueden eliminar cualquier aporte que no cumpla las normas académicas de la UNACH.
+
+### Flujo del Foro
+```mermaid
+graph TD
+    User[Estudiante en /contributions] --> Read[Ver Aportaciones en vivo]
+    User --> Create[Click en 'Compartir Recurso']
+    Create --> Form[Formulario: Título, Desc, Categoría, URL]
+    Form --> API[POST /api/contributions]
+    API --> DB[Guarda en public.contributions]
+    DB --> Realtime[Lista de Aportes actualizada]
+```
+
+---
+
+## 8. Arquitectura de Endpoints (Backend Laravel API)
 
 A continuación se detallan las rutas a implementar en `routes/api.php` protegidas por el middleware de Supabase:
 
@@ -170,10 +198,13 @@ A continuación se detallan las rutas a implementar en `routes/api.php` protegid
 | **POST** | `/api/wallet/redeem/code` | Autenticado | Genera un código QR/Alfanumérico de canje temporal |
 | **POST** | `/api/partner/redeem/claim` | Partner | Valida y reclama un código de canje para entregar los servicios |
 | **POST** | `/api/tutoring-sessions` | Autenticado | Registra una sesión de tutoría previa a redirigir a WhatsApp |
+| **GET** | `/api/contributions` | Autenticado | Lista todas las aportaciones del foro de estudiantes |
+| **POST** | `/api/contributions` | Autenticado | Publica un nuevo recurso/aporte en el foro |
+| **DELETE** | `/api/contributions/{id}` | Autenticado | Elimina una aportación (solo creador o administrador) |
 
 ---
 
-## 8. Estructura de Páginas y Enrutador Frontend (React SPA)
+## 9. Estructura de Páginas y Enrutador Frontend (React SPA)
 
 El frontend utiliza `react-router-dom` con layouts compartidos basados en roles:
 
@@ -186,6 +217,7 @@ El frontend utiliza `react-router-dom` con layouts compartidos basados en roles:
     *   `/search` (Marketplace interactivo con filtros cruzados materia/profesor).
     *   `/tutors/:id` (Perfil detallado del tutor, portafolio y botón WhatsApp).
     *   `/tutor/apply` (Formulario de postulación cargando PDF de calificaciones).
+    *   `/contributions` (Foro de aportaciones académicas de estudiantes, buscador y formulario modal).
 *   **Páginas de Comercios Aliados (Partner):**
     *   `/partner/redeem` (Lector de códigos QR y caja de texto para digitar códigos de canje de ploteos/librería).
 *   **Páginas de Administración (Admin):**

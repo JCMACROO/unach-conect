@@ -1,8 +1,35 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoNegativo from '../assets/logo negativo-8.png';
 import ParticlesBackground from '../components/ParticlesBackground';
+import { supabase } from '../supabaseClient';
 
 export default function Landing() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
   return (
     <div className="landing-container">
       <ParticlesBackground />
@@ -14,8 +41,18 @@ export default function Landing() {
           <span className="brand-title">UNACH-Connect</span>
         </div>
         <nav className="landing-nav">
-          <Link to="/login" className="nav-link">Iniciar Sesión</Link>
-          <Link to="/register" className="nav-btn">Regístrate</Link>
+          {user ? (
+            <>
+              <Link to="/contributions" className="nav-link" style={{ marginRight: '15px', color: '#FF5E13', fontWeight: 'bold' }}>Foro Académico</Link>
+              <Link to="/dashboard" className="nav-link" style={{ marginRight: '15px' }}>Ir al Panel</Link>
+              <button onClick={handleLogout} className="logout-btn">Cerrar Sesión</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="nav-link">Iniciar Sesión</Link>
+              <Link to="/register" className="nav-btn">Regístrate</Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -30,8 +67,17 @@ export default function Landing() {
             Conéctate con estudiantes de semestres superiores de Diseño Gráfico que ya aprobaron con tus mismos docentes y conocen su metodología exacta.
           </p>
           <div className="cta-group">
-            <Link to="/register" className="cta-primary">Empezar Ahora</Link>
-            <Link to="/login" className="cta-secondary">Buscar Tutores</Link>
+            {user ? (
+              <>
+                <Link to="/dashboard" className="cta-primary">Ir a mi Panel</Link>
+                <Link to="/dashboard" className="cta-secondary">Buscar Tutores</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/register" className="cta-primary">Empezar Ahora</Link>
+                <Link to="/login" className="cta-secondary">Buscar Tutores</Link>
+              </>
+            )}
           </div>
         </section>
 

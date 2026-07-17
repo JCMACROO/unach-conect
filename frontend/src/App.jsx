@@ -8,6 +8,10 @@ import Dashboard from './pages/Dashboard';
 import TutorApply from './pages/TutorApply';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminCatalog from './pages/AdminCatalog';
+import Contributions from './pages/Contributions';
+import Search from './pages/Search';
+import TutorProfile from './pages/TutorProfile';
+import PartnerRedeem from './pages/PartnerRedeem';
 
 function App() {
   return (
@@ -22,6 +26,10 @@ function App() {
         <Route path="/tutor/apply" element={<TutorApply />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/catalog" element={<AdminCatalog />} />
+        <Route path="/contributions" element={<Contributions />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/tutors/:id" element={<TutorProfile />} />
+        <Route path="/partner/redeem" element={<PartnerRedeem />} />
       </Routes>
     </Router>
   );
