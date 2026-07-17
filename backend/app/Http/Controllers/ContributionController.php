@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Contribution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class ContributionController extends Controller
@@ -84,6 +85,11 @@ class ContributionController extends Controller
                 'contribution' => $contribution
             ], 201);
         } catch (Exception $e) {
+            Log::error('Error al registrar aportación en el foro: ' . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => $authUser['id'] ?? null
+            ]);
+
             return response()->json([
                 'error' => 'Error al guardar la aportación.',
                 'message' => $e->getMessage()

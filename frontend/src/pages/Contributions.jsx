@@ -129,7 +129,7 @@ export default function Contributions() {
       }
 
       if (!res.ok) {
-        throw new Error(responseData.error || 'Error al guardar la aportación.');
+        throw new Error(responseData.message || responseData.error || 'Error al guardar la aportación.');
       }
 
       setSuccess('Aportación publicada con éxito.');
