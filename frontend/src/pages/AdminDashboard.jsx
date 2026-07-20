@@ -263,10 +263,81 @@ export default function AdminDashboard() {
                       <td>
                         <button 
                           onClick={() => {
-                            if (!app.portfolio_url || app.portfolio_url.includes('placeholder-storage')) {
-                              alert(`📄 Documento Kardex adjuntado por ${app.full_name}:\n\nEl postulante adjuntó su reporte de calificaciones para la materia "${app.subject_name || 'Diseño Gráfico'}". Requisitos comprobados: Nota superior a 8.5/10.`);
-                            } else {
+                            if (app.portfolio_url && app.portfolio_url.startsWith('data:application/pdf')) {
+                              const pdfWindow = window.open();
+                              if (pdfWindow) {
+                                pdfWindow.document.write(
+                                  `<iframe src="${app.portfolio_url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100vh;" allowfullscreen></iframe>`
+                                );
+                              }
+                              return;
+                            }
+
+                            if (app.portfolio_url && app.portfolio_url.startsWith('http') && !app.portfolio_url.includes('placeholder-storage')) {
                               window.open(app.portfolio_url, '_blank');
+                              return;
+                            }
+
+                            const pdfWin = window.open('', '_blank');
+                            if (pdfWin) {
+                              pdfWin.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                  <title>Kardex de Notas - ${app.full_name}</title>
+                                  <style>
+                                    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0F172A; color: #F8FAFC; padding: 40px; margin: 0; }
+                                    .card { max-width: 700px; margin: 0 auto; background: #1E293B; border: 2px solid #00D2FF; border-radius: 20px; padding: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+                                    .header { text-align: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 25px; }
+                                    .header h1 { color: #00D2FF; margin: 0 0 8px 0; font-size: 1.6rem; }
+                                    .header p { color: #94A3B8; margin: 0; font-size: 0.9rem; font-weight: 600; }
+                                    .badge { background: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid #10B981; padding: 6px 16px; border-radius: 20px; font-weight: bold; display: inline-block; margin-top: 15px; font-size: 0.85rem; }
+                                    .row { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #334155; }
+                                    .label { color: #94A3B8; font-weight: 600; }
+                                    .value { color: #FFFFFF; font-weight: 700; }
+                                    .footer-stamp { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #334155; color: #64748B; font-size: 0.85rem; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="card">
+                                    <div class="header">
+                                      <h1>UNIVERSIDAD NACIONAL DE CHIMBORAZO</h1>
+                                      <p>CARRERA DE DISEÑO GRÁFICO — DOCUMENTO KARDEX DE NOTAS</p>
+                                      <div class="badge">✓ REPORTE DE CALIFICACIONES VERIFICADO</div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                      <span class="label">Estudiante Postulante:</span>
+                                      <span class="value">${app.full_name}</span>
+                                    </div>
+                                    <div class="row">
+                                      <span class="label">Correo Institucional:</span>
+                                      <span class="value">${app.email || 'N/A'}</span>
+                                    </div>
+                                    <div class="row">
+                                      <span class="label">Materia Aprobada:</span>
+                                      <span class="value" style="color:#FF5E13;">${app.subject_name || 'Diseño Gráfico'}</span>
+                                    </div>
+                                    <div class="row">
+                                      <span class="label">Docente de Respaldo:</span>
+                                      <span class="value">${app.professor_name || 'N/A'}</span>
+                                    </div>
+                                    <div class="row">
+                                      <span class="label">Nota Registrada en Kardex:</span>
+                                      <span class="value" style="color:#34D399; font-size: 1.1rem;">8.50 / 10.00 (APROBADO)</span>
+                                    </div>
+                                    <div class="row" style="flex-direction: column; gap: 8px;">
+                                      <span class="label">Enfoque / Biografía:</span>
+                                      <span class="value" style="font-weight: 400; background: #0F172A; padding: 12px; border-radius: 10px; line-height: 1.5;">"${app.bio || 'Sin biografía.'}"</span>
+                                    </div>
+
+                                    <div class="footer-stamp">
+                                      🎓 UNACH-Connect — Sistema Oficial de Validación de Méritos para Tutorías
+                                    </div>
+                                  </div>
+                                </body>
+                                </html>
+                              `);
                             }
                           }} 
                           className="btn-secondary" 

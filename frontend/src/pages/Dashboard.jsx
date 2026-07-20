@@ -49,38 +49,50 @@ export default function Dashboard() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
 
-        // 2. Get wallet balance & ledger from Laravel API
-        const walletRes = await fetch(`${import.meta.env.VITE_API_URL}/wallet/balance`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (walletRes.ok) {
-          const walletData = await walletRes.json();
-          setBalance(parseFloat(walletData.balance));
-          setTransactions(walletData.transactions || []);
-          setActiveCodes(walletData.active_codes || []);
+        // 2. Get wallet balance & ledger (API with fallback)
+        try {
+          const walletRes = await fetch(`${import.meta.env.VITE_API_URL}/wallet/balance`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (walletRes.ok) {
+            const walletData = await walletRes.json();
+            setBalance(parseFloat(walletData.balance));
+            setTransactions(walletData.transactions || []);
+            setActiveCodes(walletData.active_codes || []);
+          }
+        } catch (wErr) {
+          console.warn('Wallet fetch error:', wErr);
         }
 
         // 3. Get partners list for redemption
-        const partnersRes = await fetch(`${import.meta.env.VITE_API_URL}/partners`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (partnersRes.ok) {
-          const partnersData = await partnersRes.json();
-          setPartners(partnersData);
-          if (partnersData.length > 0) {
-            setSelectedPartnerId(partnersData[0].id);
+        try {
+          const partnersRes = await fetch(`${import.meta.env.VITE_API_URL}/partners`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (partnersRes.ok) {
+            const partnersData = await partnersRes.json();
+            setPartners(partnersData);
+            if (partnersData.length > 0) {
+              setSelectedPartnerId(partnersData[0].id);
+            }
           }
+        } catch (pErr) {
+          console.warn('Partners fetch error:', pErr);
         }
 
-        // 4. Get tutor status
-        const { data: tutorData } = await supabase
-          .from('tutors')
-          .select('status')
-          .eq('id', user.id)
-          .single();
+        // 4. Get tutor status directly from Supabase (maybeSingle)
+        try {
+          const { data: tutorData, error: tErr } = await supabase
+            .from('tutors')
+            .select('status')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (tutorData) {
-          setTutorStatus(tutorData.status);
+          if (!tErr && tutorData && tutorData.status) {
+            setTutorStatus(tutorData.status);
+          }
+        } catch (tutorFetchErr) {
+          console.warn('Error fetching tutor status:', tutorFetchErr);
         }
 
         // 5. Get tutoring sessions
