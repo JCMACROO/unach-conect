@@ -183,7 +183,11 @@ export default function AdminCatalog() {
       loadCatalogs();
     } catch (err) {
       console.error('Error saving subject:', err);
-      setError(err.message || 'Error al guardar la asignatura.');
+      if (err.message && err.message.includes('row-level security policy')) {
+        setError('⚠️ Permisos de Supabase: Copia y ejecuta el archivo FIX_SUPABASE_RLS.sql en el SQL Editor de tu Dashboard de Supabase para habilitar la adición de materias.');
+      } else {
+        setError(err.message || 'Error al guardar la asignatura.');
+      }
     }
   };
 
@@ -244,7 +248,11 @@ export default function AdminCatalog() {
       loadCatalogs();
     } catch (err) {
       console.error('Error saving professor:', err);
-      setError(err.message || 'Error al guardar el docente.');
+      if (err.message && err.message.includes('row-level security policy')) {
+        setError('⚠️ Permisos de Supabase: Copia y ejecuta el archivo FIX_SUPABASE_RLS.sql en el SQL Editor de tu Dashboard de Supabase para habilitar la adición de docentes.');
+      } else {
+        setError(err.message || 'Error al guardar el docente.');
+      }
     }
   };
 
