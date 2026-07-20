@@ -14,9 +14,38 @@ export default function ParticlesBackground() {
     let height = (canvas.height = window.innerHeight);
 
     const particles = [];
-    const particleCount = Math.min(60, Math.floor((width * height) / 25000));
-    const connectionDistance = 120;
-    const mouse = { x: null, y: null, radius: 150 };
+    const particleCount = Math.min(50, Math.floor((width * height) / 30000));
+    const connectionDistance = 130;
+    const mouse = { x: null, y: null, radius: 160 };
+
+    // Hexagons definitions
+    const hexagons = [
+      { x: width * 0.8, y: height * 0.15, radius: 180, rot: 0.2, stroke: 'rgba(0, 180, 255, 0.4)' },
+      { x: width * 0.15, y: height * 0.35, radius: 240, rot: -0.1, stroke: 'rgba(0, 140, 255, 0.35)' },
+      { x: width * 0.85, y: height * 0.75, radius: 210, rot: 0.4, stroke: 'rgba(255, 94, 19, 0.35)' },
+      { x: width * 0.3, y: height * 0.85, radius: 160, rot: 0.15, stroke: 'rgba(0, 200, 255, 0.3)' }
+    ];
+
+    function drawHexagon(x, y, radius, angle, strokeStyle) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        const hx = radius * Math.cos(a);
+        const hy = radius * Math.sin(a);
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = strokeStyle;
+      ctx.stroke();
+      ctx.restore();
+    }
 
     class Particle {
       constructor() {
@@ -24,7 +53,8 @@ export default function ParticlesBackground() {
         this.y = Math.random() * height;
         this.vx = (Math.random() - 0.5) * 0.4;
         this.vy = (Math.random() - 0.5) * 0.4;
-        this.radius = Math.random() * 2 + 1;
+        this.radius = Math.random() * 2.5 + 1;
+        this.color = Math.random() > 0.4 ? 'rgba(0, 210, 255, 0.8)' : 'rgba(255, 94, 19, 0.85)';
       }
 
       update() {
@@ -38,11 +68,11 @@ export default function ParticlesBackground() {
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 94, 19, 0.7)'; // Vibrant Orange glow
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = '#FF5E13';
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.color;
         ctx.fill();
-        ctx.shadowBlur = 0; // Reset shadow for lines
+        ctx.shadowBlur = 0;
       }
     }
 
@@ -53,6 +83,21 @@ export default function ParticlesBackground() {
       }
     };
 
+    const drawBackground = () => {
+      // Deep Royal Blue Gradient
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      grad.addColorStop(0, '#001433');
+      grad.addColorStop(0.5, '#002B5B');
+      grad.addColorStop(1, '#00437A');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw glowing background hexagons
+      hexagons.forEach(hex => {
+        drawHexagon(hex.x, hex.y, hex.radius, hex.rot, hex.stroke);
+      });
+    };
+
     const drawLines = () => {
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
@@ -61,29 +106,28 @@ export default function ParticlesBackground() {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < connectionDistance) {
-            const alpha = (1 - dist / connectionDistance) * 0.25;
+            const alpha = (1 - dist / connectionDistance) * 0.3;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(255, 94, 19, ${alpha})`;
-            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = `rgba(0, 190, 255, ${alpha})`;
+            ctx.lineWidth = 1;
             ctx.stroke();
           }
         }
 
-        // Connect to mouse
         if (mouse.x !== null && mouse.y !== null) {
           const dx = particles[i].x - mouse.x;
           const dy = particles[i].y - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < mouse.radius) {
-            const alpha = (1 - dist / mouse.radius) * 0.35;
+            const alpha = (1 - dist / mouse.radius) * 0.4;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(mouse.x, mouse.y);
             ctx.strokeStyle = `rgba(255, 94, 19, ${alpha})`;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1.2;
             ctx.stroke();
           }
         }
@@ -91,7 +135,7 @@ export default function ParticlesBackground() {
     };
 
     const animate = () => {
-      ctx.clearRect(0, 0, width, height);
+      drawBackground();
       particles.forEach((p) => {
         p.update();
         p.draw();
@@ -142,8 +186,7 @@ export default function ParticlesBackground() {
         width: '100vw',
         height: '100vh',
         zIndex: -1,
-        pointerEvents: 'none',
-        background: '#0A0F1D', // Deep Navy Blue background
+        pointerEvents: 'none'
       }}
     />
   );
