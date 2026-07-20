@@ -56,7 +56,7 @@ El flujo mediante el cual un estudiante (alumno) se convierte en tutor ("referen
     *   **Biografía corta** (Área de especialidad y enfoque).
     *   **Documento de respaldo:** Carga del reporte de calificaciones (Kardex) o portafolio en PDF.
 3. **Mapeo de Estados:**
-    *   La postulación ingresa con el estado `pending`.
+    *   La postulación ingresa con el estado `pending`.    
     *   Un Administrador debe revisarla. Puede cambiar el estado del tutor en la tabla `tutors` a `approved` o `suspended` (rechazada).
     *   Solo cuando el estado es `approved`, sus materias asociadas se habilitan en el buscador público.
 
