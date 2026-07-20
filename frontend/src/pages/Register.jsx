@@ -62,34 +62,44 @@ export default function Register() {
 
       if (signUpError) throw signUpError;
 
-      // 2. Wait briefly for triggers to complete, then update phone number if needed
-      if (data.user) {
-        // Triggers in Postgres (handle_new_user) will sync to public.users.
-        // We can optionally update the phone number in public.users if the metadata trigger doesn't write it.
-        const { error: updateProfileError } = await supabase
-          .from('users')
-          .update({ phone_number: phone })
-          .eq('id', data.user.id);
+      // 2. Handle successful registration output
+      if (data?.user) {
+        // Attempt phone update if session is active
+        if (data.session) {
+          try {
+            await supabase
+              .from('users')
+              .update({ phone_number: phone })
+              .eq('id', data.user.id);
+          } catch (e) {
+            console.warn('Could not update phone number in users profile:', e);
+          }
 
-        if (updateProfileError) {
-          console.warn('Could not update phone number in users profile:', updateProfileError);
+          setSuccess('¡Registro exitoso! Redirigiendo al panel...');
+          localStorage.setItem('user', JSON.stringify({
+            id: data.user.id,
+            email: email,
+            name: name,
+            role: 'student'
+          }));
+
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+        } else {
+          // Email confirmation is enabled in Supabase Auth settings
+          setSuccess('¡Cuenta registrada! Te hemos enviado un correo de confirmación a tu e-mail institucional. Revisa tu bandeja de entrada para activar tu cuenta.');
         }
       }
-
-      setSuccess('Registro exitoso. Revisa tu correo de confirmación (si está habilitado) o inicia sesión.');
-      localStorage.setItem('user', JSON.stringify({
-        id: data.user.id,
-        email: email,
-        name: name,
-        role: 'student'
-      }));
-
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
     } catch (err) {
       console.error('Error in registration:', err);
-      setError(err.message || 'Error al crear la cuenta. Inténtalo de nuevo.');
+      let msg = err.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      if (msg.toLowerCase().includes('email rate limit exceeded')) {
+        msg = '⚠️ Límite de envíos de correo de Supabase alcanzado ("email rate limit exceeded"). En Supabase Auth Dashboard -> Authentication -> Providers -> Email, desactiva la opción "Confirm email" o espera unos minutos.';
+      } else if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('user_already_exists')) {
+        msg = 'Este correo institucional ya se encuentra registrado. Intenta iniciar sesión.';
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
