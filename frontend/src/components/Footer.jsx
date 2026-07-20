@@ -29,16 +29,16 @@ export default function Footer() {
         }}
       >
         {/* Logos Oficiales */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <img 
             src={logoNegativo} 
             alt="UNACH-Connect Logo Negativo" 
-            style={{ height: '48px', width: 'auto', objectFit: 'contain' }} 
+            style={{ height: '75px', width: 'auto', objectFit: 'contain' }} 
           />
           <img 
             src={logoPositivo} 
             alt="UNACH-Connect Logo Positivo" 
-            style={{ height: '48px', width: 'auto', objectFit: 'contain' }} 
+            style={{ height: '75px', width: 'auto', objectFit: 'contain' }} 
           />
         </div>
 

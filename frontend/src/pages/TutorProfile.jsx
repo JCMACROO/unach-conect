@@ -192,7 +192,6 @@ export default function TutorProfile() {
         <div className="brand">
           <Link to="/" className="brand-link">
             <img src={logoNegativo} alt="UNACH-Connect Logo" className="brand-logo" />
-            <span className="brand-title">UNACH-Connect</span>
           </Link>
         </div>
         <nav className="landing-nav">

@@ -37,8 +37,9 @@ export default function Landing() {
       {/* Header */}
       <header className="landing-header">
         <div className="brand">
-          <img src={logoNegativo} alt="UNACH-Connect Logo" className="brand-logo" />
-          <span className="brand-title">UNACH-Connect</span>
+          <Link to="/" className="brand-link">
+            <img src={logoNegativo} alt="UNACH-Connect Logo" className="brand-logo" />
+          </Link>
         </div>
         <nav className="landing-nav">
           {user ? (

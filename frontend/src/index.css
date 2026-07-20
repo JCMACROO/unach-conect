@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-dark: #070A14;
+  --bg-dark: #0E1526;
   --primary: #FF5E13;
   --primary-hover: #e04f0d;
-  --glass-surface: rgba(17, 24, 39, 0.90);
+  --glass-surface: rgba(23, 32, 54, 0.90);
   --glass-border: rgba(255, 255, 255, 0.16);
   --glass-glow: rgba(255, 94, 19, 0.15);
   --text-primary: #FFFFFF;
@@ -53,7 +53,8 @@ a {
 }
 
 .landing-header {
-  height: 90px;
+  min-height: 95px;
+  padding: 10px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -73,10 +74,9 @@ a {
 }
 
 .brand-logo {
-  height: 65px;
+  height: 80px;
   width: auto;
   object-fit: contain;
-  margin-right: 4px;
 }
 
 .brand-title {
