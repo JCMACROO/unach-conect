@@ -1,15 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-dark: #1C2536;
+  --bg-dark: #0A4174;
+  --bg-navy: #001D39;
   --primary: #FF5E13;
   --primary-hover: #e04f0d;
-  --glass-surface: rgba(28, 38, 56, 0.92);
-  --glass-border: rgba(255, 255, 255, 0.20);
-  --glass-glow: rgba(255, 94, 19, 0.15);
+  --accent-sky: #7BBDE8;
+  --accent-teal: #4E8EA2;
+  --glass-surface: rgba(0, 29, 57, 0.88);
+  --glass-border: rgba(123, 189, 232, 0.35);
+  --glass-glow: rgba(123, 189, 232, 0.20);
   --text-primary: #FFFFFF;
-  --text-secondary: #E2E8F0;
-  --text-muted: #94A3B8;
+  --text-secondary: #BDD8E9;
+  --text-muted: #6EA2B3;
   --success: #10B981;
   --error: #EF4444;
   --warning: #F59E0B;
@@ -25,7 +28,9 @@
 }
 
 body {
-  background-color: var(--bg-dark);
+  background: #001D39;
+  background: linear-gradient(135deg, #001D39 0%, #0A4174 55%, #49769F 100%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 16px;
@@ -53,8 +58,8 @@ a {
 }
 
 .landing-header {
-  min-height: 95px;
-  padding: 10px 0;
+  min-height: 140px;
+  padding: 15px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -74,9 +79,16 @@ a {
 }
 
 .brand-logo {
-  height: 80px;
+  height: 125px;
+  max-height: 130px;
   width: auto;
   object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+  transition: transform 0.2 ease;
+}
+
+.brand-logo:hover {
+  transform: scale(1.04);
 }
 
 .brand-title {
@@ -273,6 +285,12 @@ a {
 }
 
 @media (max-width: 768px) {
+  .landing-header {
+    min-height: 110px;
+  }
+  .brand-logo {
+    height: 95px;
+  }
   .grid-testimonials {
     grid-template-columns: 1fr;
   }
