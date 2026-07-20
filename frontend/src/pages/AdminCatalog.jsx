@@ -355,7 +355,7 @@ export default function AdminCatalog() {
       {/* Header */}
       <header className="landing-header">
         <div className="brand">
-          <Link to="/admin/dashboard" className="brand-link">
+          <Link to="/" className="brand-link">
             <img src={logoNegativo} alt="UNACH-Connect Logo" className="brand-logo" />
             <span className="brand-title" style={{ color: '#EF4444' }}>Gestión de Catálogos</span>
           </Link>

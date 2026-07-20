@@ -276,7 +276,7 @@ export default function Contributions() {
       {/* Header */}
       <header className="landing-header">
         <div className="brand">
-          <Link to="/dashboard" className="brand-link">
+          <Link to="/" className="brand-link">
             <img src={logoNegativo} alt="UNACH-Connect Logo" className="brand-logo" />
             <span className="brand-title">UNACH-Connect</span>
           </Link>
