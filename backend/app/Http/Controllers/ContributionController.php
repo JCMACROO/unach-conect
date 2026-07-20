@@ -6,6 +6,7 @@ use App\Models\Contribution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ContributionController extends Controller
@@ -68,20 +69,32 @@ class ContributionController extends Controller
         ]);
 
         try {
-            $contribution = Contribution::create([
-                'id' => Str::uuid()->toString(),
-                'user_id' => $authUser['id'],
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'category' => $validated['category'],
-                'resource_url' => $validated['resource_url']
-            ]);
+            DB::transaction(function () use ($authUser, $validated, &$contribution) {
+                $contribution = Contribution::create([
+                    'id' => Str::uuid()->toString(),
+                    'user_id' => $authUser['id'],
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'category' => $validated['category'],
+                    'resource_url' => $validated['resource_url']
+                ]);
+
+                // Recompensa automática de +10.00 UNACH-Credits
+                DB::table('credit_transactions')->insert([
+                    'id' => Str::uuid()->toString(),
+                    'wallet_id' => $authUser['id'],
+                    'amount' => 10.00,
+                    'type' => 'admin_adjustment',
+                    'description' => 'Recompensa por aportar en el Foro Académico: ' . $validated['title'],
+                    'created_at' => now()
+                ]);
+            });
 
             // Load user relation for immediate frontend display
             $contribution->load('user:id,full_name,email,avatar_url');
 
             return response()->json([
-                'message' => 'Aportación publicada correctamente.',
+                'message' => 'Aportación publicada correctamente. ¡Has ganado +10.00 UNACH-Credits!',
                 'contribution' => $contribution
             ], 201);
         } catch (Exception $e) {

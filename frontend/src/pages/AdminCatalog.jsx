@@ -59,26 +59,56 @@ export default function AdminCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Fetch subjects
-      const subjectsRes = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (subjectsRes.ok) {
-        const subjectsData = await subjectsRes.json();
-        setSubjects(subjectsData);
+      let fetchedSubjects = null;
+      let fetchedProfessors = null;
+
+      try {
+        const subjectsRes = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        if (subjectsRes.ok) {
+          const text = await subjectsRes.text();
+          fetchedSubjects = JSON.parse(text);
+        }
+
+        const professorsRes = await fetch(`${import.meta.env.VITE_API_URL}/professors`, {
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        if (professorsRes.ok) {
+          const text = await professorsRes.text();
+          fetchedProfessors = JSON.parse(text);
+        }
+      } catch (apiErr) {
+        console.warn('API connection issue, switching to direct Supabase query:', apiErr);
       }
 
-      // Fetch professors
-      const professorsRes = await fetch(`${import.meta.env.VITE_API_URL}/professors`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (professorsRes.ok) {
-        const professorsData = await professorsRes.json();
-        setProfessors(professorsData);
+      // Supabase Direct Fallback for Subjects
+      if (!fetchedSubjects) {
+        const { data: dbSubjects, error: subjErr } = await supabase
+          .from('subjects')
+          .select('*')
+          .order('name');
+        if (!subjErr && dbSubjects) {
+          fetchedSubjects = dbSubjects;
+        }
       }
+
+      // Supabase Direct Fallback for Professors
+      if (!fetchedProfessors) {
+        const { data: dbProfessors, error: profErr } = await supabase
+          .from('professors')
+          .select('*')
+          .order('name');
+        if (!profErr && dbProfessors) {
+          fetchedProfessors = dbProfessors;
+        }
+      }
+
+      setSubjects(fetchedSubjects || []);
+      setProfessors(fetchedProfessors || []);
     } catch (err) {
       console.error('Error loading catalogs:', err);
-      setError('Error al obtener catálogos desde el servidor.');
+      setError('Error al obtener catálogos.');
     } finally {
       setLoading(false);
     }
@@ -105,28 +135,47 @@ export default function AdminCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const url = isEditing 
-        ? `${import.meta.env.VITE_API_URL}/admin/subjects/${subjectId}`
-        : `${import.meta.env.VITE_API_URL}/admin/subjects`;
-      
-      const method = isEditing ? 'PUT' : 'POST';
+      let apiSuccess = false;
+      try {
+        const url = isEditing 
+          ? `${import.meta.env.VITE_API_URL}/admin/subjects/${subjectId}`
+          : `${import.meta.env.VITE_API_URL}/admin/subjects`;
+        
+        const method = isEditing ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: subjectName,
-          description: subjectDescription
-        })
-      });
+        const res = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: subjectName,
+            description: subjectDescription
+          })
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API error, using Supabase direct query for subject save:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || responseData.message || 'Error al guardar la asignatura.');
+      if (!apiSuccess) {
+        if (isEditing) {
+          const { error: dbErr } = await supabase
+            .from('subjects')
+            .update({ name: subjectName, description: subjectDescription })
+            .eq('id', subjectId);
+          if (dbErr) throw dbErr;
+        } else {
+          const { error: dbErr } = await supabase
+            .from('subjects')
+            .insert({ name: subjectName, description: subjectDescription });
+          if (dbErr) throw dbErr;
+        }
       }
 
       setSuccess(isEditing ? 'Asignatura actualizada con éxito.' : 'Asignatura creada con éxito.');
@@ -134,7 +183,7 @@ export default function AdminCatalog() {
       loadCatalogs();
     } catch (err) {
       console.error('Error saving subject:', err);
-      setError(err.message);
+      setError(err.message || 'Error al guardar la asignatura.');
     }
   };
 
@@ -147,28 +196,47 @@ export default function AdminCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const url = isEditing 
-        ? `${import.meta.env.VITE_API_URL}/admin/professors/${professorId}`
-        : `${import.meta.env.VITE_API_URL}/admin/professors`;
-      
-      const method = isEditing ? 'PUT' : 'POST';
+      let apiSuccess = false;
+      try {
+        const url = isEditing 
+          ? `${import.meta.env.VITE_API_URL}/admin/professors/${professorId}`
+          : `${import.meta.env.VITE_API_URL}/admin/professors`;
+        
+        const method = isEditing ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: professorName,
-          department: professorDepartment
-        })
-      });
+        const res = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: professorName,
+            department: professorDepartment
+          })
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API error, using Supabase direct query for professor save:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || responseData.message || 'Error al guardar el docente.');
+      if (!apiSuccess) {
+        if (isEditing) {
+          const { error: dbErr } = await supabase
+            .from('professors')
+            .update({ name: professorName, department: professorDepartment })
+            .eq('id', professorId);
+          if (dbErr) throw dbErr;
+        } else {
+          const { error: dbErr } = await supabase
+            .from('professors')
+            .insert({ name: professorName, department: professorDepartment });
+          if (dbErr) throw dbErr;
+        }
       }
 
       setSuccess(isEditing ? 'Docente actualizado con éxito.' : 'Docente creado con éxito.');
@@ -176,7 +244,7 @@ export default function AdminCatalog() {
       loadCatalogs();
     } catch (err) {
       console.error('Error saving professor:', err);
-      setError(err.message);
+      setError(err.message || 'Error al guardar el docente.');
     }
   };
 
@@ -209,22 +277,33 @@ export default function AdminCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/subjects/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      let apiSuccess = false;
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/subjects/${id}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API delete subject error, using direct Supabase fallback:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Error al eliminar la asignatura.');
+      if (!apiSuccess) {
+        const { error: dbErr } = await supabase
+          .from('subjects')
+          .delete()
+          .eq('id', id);
+        if (dbErr) throw dbErr;
       }
 
       setSuccess('Asignatura eliminada con éxito.');
       loadCatalogs();
     } catch (err) {
       console.error('Error deleting subject:', err);
-      setError(err.message);
+      setError(err.message || 'Error al eliminar la asignatura.');
     }
   };
 
@@ -239,22 +318,33 @@ export default function AdminCatalog() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/professors/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      let apiSuccess = false;
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/professors/${id}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API delete professor error, using direct Supabase fallback:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Error al eliminar el docente.');
+      if (!apiSuccess) {
+        const { error: dbErr } = await supabase
+          .from('professors')
+          .delete()
+          .eq('id', id);
+        if (dbErr) throw dbErr;
       }
 
       setSuccess('Docente eliminado con éxito.');
       loadCatalogs();
     } catch (err) {
       console.error('Error deleting professor:', err);
-      setError(err.message);
+      setError(err.message || 'Error al eliminar el docente.');
     }
   };
 

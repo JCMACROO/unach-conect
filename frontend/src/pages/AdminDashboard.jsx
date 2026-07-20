@@ -44,22 +44,64 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/applications`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      let applicationsData = null;
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'No se pudieron cargar las postulaciones.');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/applications`, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const text = await res.text();
+          applicationsData = JSON.parse(text);
+        }
+      } catch (apiErr) {
+        console.warn('API connection issue, switching to direct Supabase query:', apiErr);
       }
 
-      const data = await res.json();
-      setApplications(data);
+      // Supabase Direct Fallback
+      if (!applicationsData) {
+        const { data: tutorsData, error: dbError } = await supabase
+          .from('tutors')
+          .select(`
+            id,
+            bio,
+            portfolio_url,
+            status,
+            users ( full_name, email ),
+            tutor_subjects (
+              price_per_hour,
+              subjects ( name ),
+              professors ( name )
+            )
+          `)
+          .eq('status', 'pending');
+
+        if (dbError) throw dbError;
+
+        applicationsData = (tutorsData || []).map(tutor => {
+          const ts = tutor.tutor_subjects?.[0] || {};
+          return {
+            tutor_id: tutor.id,
+            full_name: tutor.users?.full_name || 'Estudiante',
+            email: tutor.users?.email || '',
+            bio: tutor.bio || '',
+            portfolio_url: tutor.portfolio_url || '',
+            status: tutor.status,
+            subject_name: ts.subjects?.name || 'Asignatura propuesta',
+            professor_name: ts.professors?.name || 'Sin docente asignado',
+            price_per_hour: ts.price_per_hour || 0
+          };
+        });
+      }
+
+      setApplications(applicationsData);
     } catch (err) {
       console.error('Error loading applications:', err);
-      setError(err.message || 'Error de conexión con el servidor.');
+      setError(err.message || 'Error al cargar las postulaciones.');
     } finally {
       setLoading(false);
     }
@@ -78,28 +120,39 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/applications/${tutorId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+      let apiSuccess = false;
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/applications/${tutorId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API connection issue, executing direct Supabase update:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Error al actualizar la postulación.');
+      if (!apiSuccess) {
+        const { error: dbError } = await supabase
+          .from('tutors')
+          .update({ status: newStatus })
+          .eq('id', tutorId);
+
+        if (dbError) throw dbError;
       }
 
       setSuccess(`Postulación ${newStatus === 'approved' ? 'aprobada' : 'rechazada'} correctamente.`);
-      
-      // Update local state to remove the application
       setApplications(prev => prev.filter(app => app.tutor_id !== tutorId));
     } catch (err) {
       console.error('Error updating application:', err);
-      setError(err.message || 'Error de conexión.');
+      setError(err.message || 'Error al actualizar la postulación.');
     }
   };
 

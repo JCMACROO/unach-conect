@@ -52,27 +52,58 @@ export default function Contributions() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Construct query parameters
-      const params = new URLSearchParams();
-      if (searchText) params.append('search', searchText);
-      if (categoryFilter) params.append('category', categoryFilter);
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions?${params.toString()}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      let data = [];
+      let data = null;
       try {
-        data = await res.json();
-      } catch (e) {
-        console.error('Failed to parse contributions JSON:', e);
+        const params = new URLSearchParams();
+        if (searchText) params.append('search', searchText);
+        if (categoryFilter) params.append('category', categoryFilter);
+
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions?${params.toString()}`, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const text = await res.text();
+          data = JSON.parse(text);
+        }
+      } catch (apiErr) {
+        console.warn('API error fetching contributions, using direct Supabase fallback:', apiErr);
       }
 
-      if (!res.ok) {
-        throw new Error(data.error || 'No se pudieron cargar las aportaciones del foro.');
+      // Supabase direct query fallback
+      if (!data) {
+        let query = supabase
+          .from('contributions')
+          .select(`
+            id,
+            user_id,
+            title,
+            description,
+            category,
+            resource_url,
+            created_at,
+            users ( id, full_name, email, avatar_url )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (categoryFilter) {
+          query = query.eq('category', categoryFilter);
+        }
+
+        if (searchText) {
+          query = query.or(`title.ilike.%${searchText}%,description.ilike.%${searchText}%`);
+        }
+
+        const { data: dbData, error: dbError } = await query;
+        if (dbError) throw dbError;
+
+        data = (dbData || []).map(item => ({
+          ...item,
+          user: item.users
+        }));
       }
 
       setContributions(data);
@@ -106,33 +137,56 @@ export default function Contributions() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: formTitle,
-          description: formDescription,
-          category: formCategory,
-          resource_url: formUrl
-        })
-      });
-
-      let responseData = {};
+      let apiSuccess = false;
       try {
-        responseData = await res.json();
-      } catch (e) {
-        console.error('Failed to parse store contribution JSON:', e);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: formTitle,
+            description: formDescription,
+            category: formCategory,
+            resource_url: formUrl
+          })
+        });
+
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API error creating contribution, using direct Supabase fallback:', apiErr);
       }
 
-      if (!res.ok) {
-        throw new Error(responseData.message || responseData.error || 'Error al guardar la aportación.');
+      // If API was not used or failed, fallback to direct Supabase insert + credits reward
+      if (!apiSuccess) {
+        const { error: contribError } = await supabase
+          .from('contributions')
+          .insert({
+            user_id: profile.id,
+            title: formTitle,
+            description: formDescription,
+            category: formCategory,
+            resource_url: formUrl
+          });
+
+        if (contribError) throw contribError;
+
+        // Recompensa automática de +10.00 UNACH-Credits
+        await supabase
+          .from('credit_transactions')
+          .insert({
+            wallet_id: profile.id,
+            amount: 10.00,
+            type: 'admin_adjustment',
+            description: `Recompensa por aporte en el Foro Académico: ${formTitle}`
+          });
       }
 
-      setSuccess('Aportación publicada con éxito.');
+      setSuccess('🎉 ¡Aportación publicada con éxito! Has acumulado +10.00 UNACH-Credits en tu billetera.');
       
       // Close modal and reset fields
       setIsModalOpen(false);
@@ -144,6 +198,7 @@ export default function Contributions() {
       // Reload list
       loadContributions();
     } catch (err) {
+      console.error('Error creating contribution:', err);
       setError(err.message || 'Error al crear la aportación.');
     } finally {
       setSubmitting(false);

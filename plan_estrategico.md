@@ -120,11 +120,13 @@ Un monedero para gestionar el flujo financiero interno sin dinero físico.
 
 ### Funciones en el Dashboard del Alumno/Tutor
 1. **Visualización de Saldo:** Muestra el balance acumulado actual (ej. *"Tienes 45.00 UNACH-Credits"*).
-2. **Historial de Transacciones (Ledger):** Lista detallada con:
+2. **Obtención de Créditos (Incentivo Colaborativo):**
+    *   Cada vez que un estudiante publica una aportación/recurso válido en el Foro Académico (`/contributions`), el sistema le otorga de forma automática **+10.00 UNACH-Credits** en su billetera.
+3. **Historial de Transacciones (Ledger):** Lista detallada con:
     *   Fecha.
-    *   Concepto (ej. *"Pago por tutoría de Tipografía con Mateo"*, *"Canje en Copiadora Express"*).
+    *   Concepto (ej. *"Recompensa por aporte en el Foro Académico (+10.00 Credits)"*, *"Canje en Copiadora Express"*).
     *   Monto (verde para ingresos `+`, rojo para consumos `-`).
-3. **Generación de Canje:**
+4. **Generación de Canje:**
     *   El estudiante selecciona cuántos créditos desea canjear en un comercio asociado.
     *   Se genera un código alfanumérico temporal único de 8 dígitos (guardado en `public.redemption_codes` con expiración de 10 minutos).
     *   El código se dibuja dinámicamente en pantalla como código de barra o código QR.
@@ -159,12 +161,13 @@ Este módulo fomenta la colaboración académica descentralizada permitiendo que
 
 ### Reglas de Negocio
 1. **Acceso:** Todos los estudiantes autenticados pueden ver la lista de aportes y publicar contenido.
-2. **Campos Requeridos:**
+2. **Recompensa por Aporte:** Al guardar una publicación de manera exitosa, el backend registra automáticamente una transacción de **+10.00 UNACH-Credits** en la tabla `credit_transactions` del alumno autor.
+3. **Campos Requeridos:**
     *   **Título** del recurso o aportación.
     *   **Descripción** detallada o explicación.
     *   **Categoría:** Tipo de recurso (`tutorial`, `recurso`, `consejo_general`).
     *   **URL del Recurso:** Enlace externo obligatorio (ej. OneDrive, Google Drive, YouTube, GitHub).
-3. **Propiedad y Moderación:**
+4. **Propiedad y Moderación:**
     *   Un alumno solo puede eliminar o editar sus propios aportes.
     *   Los administradores pueden eliminar cualquier aporte que no cumpla las normas académicas de la UNACH.
 
@@ -175,8 +178,8 @@ graph TD
     User --> Create[Click en 'Compartir Recurso']
     Create --> Form[Formulario: Título, Desc, Categoría, URL]
     Form --> API[POST /api/contributions]
-    API --> DB[Guarda en public.contributions]
-    DB --> Realtime[Lista de Aportes actualizada]
+    API --> DB[Guarda en public.contributions + Otorga +10.00 Credits]
+    DB --> Realtime[Lista de Aportes actualizada + Saldo de Billetera acreditado]
 ```
 
 ---
