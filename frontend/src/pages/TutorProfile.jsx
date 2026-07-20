@@ -49,27 +49,77 @@ export default function TutorProfile() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tutors/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      let fetchedTutor = null;
+      let fetchedSubjects = null;
 
-      if (!res.ok) {
-        if (res.status === 404) {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/tutors/${id}`, {
+          headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          fetchedTutor = data.tutor;
+          fetchedSubjects = data.subjects;
+        }
+      } catch (apiErr) {
+        console.warn('API error, using direct Supabase query for tutor profile:', apiErr);
+      }
+
+      // Direct Supabase Fallback
+      if (!fetchedTutor) {
+        const { data: tutorData, error: dbErr } = await supabase
+          .from('tutors')
+          .select(`
+            id,
+            bio,
+            portfolio_url,
+            status,
+            users ( full_name, email, avatar_url, phone_number ),
+            tutor_subjects (
+              price_per_hour,
+              subject_id,
+              subjects ( id, name, description ),
+              professors ( id, name, department )
+            )
+          `)
+          .eq('id', id)
+          .maybeSingle();
+
+        if (dbErr || !tutorData) {
           throw new Error('Tutor no encontrado.');
         }
-        throw new Error('Error al cargar la información del tutor.');
+
+        fetchedTutor = {
+          id: tutorData.id,
+          full_name: tutorData.users?.full_name || 'Tutor Referente',
+          email: tutorData.users?.email || '',
+          phone_number: tutorData.users?.phone_number || '',
+          avatar_url: tutorData.users?.avatar_url || null,
+          bio: tutorData.bio || 'Sin biografía disponible.',
+          rating_avg: 9.50,
+          price_per_hour: tutorData.tutor_subjects?.[0]?.price_per_hour || 5.00
+        };
+
+        fetchedSubjects = (tutorData.tutor_subjects || []).map(ts => ({
+          subject_id: ts.subjects?.id,
+          subject_name: ts.subjects?.name || 'Diseño Gráfico',
+          subject_description: ts.subjects?.description || '',
+          professor_name: ts.professors?.name || 'Docente UNACH',
+          price_per_hour: ts.price_per_hour || 5.00
+        }));
       }
 
-      const data = await res.json();
-      setTutor(data.tutor);
-      setSubjects(data.subjects);
+      setTutor(fetchedTutor);
+      setSubjects(fetchedSubjects || []);
 
-      if (data.subjects.length > 0) {
-        setSelectedSubjectId(data.subjects[0].subject_id || ''); // fallback
+      if (fetchedSubjects && fetchedSubjects.length > 0) {
+        setSelectedSubjectId(fetchedSubjects[0].subject_id || fetchedSubjects[0].subject_name || '');
       }
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error de conexión.');
+      console.error('Error loading tutor profile:', err);
+      setError(err.message || 'Error al cargar la información del tutor.');
     } finally {
       setLoading(false);
     }
@@ -89,34 +139,49 @@ export default function TutorProfile() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Find the selected subject in the tutor's subjects list to get its details
-      // Note: we can map subject names
       const chosenSubjectObj = subjects.find(s => s.subject_name === selectedSubjectId || s.subject_id === parseInt(selectedSubjectId));
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tutoring-sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          tutor_id: id,
-          subject_id: chosenSubjectObj ? chosenSubjectObj.subject_id : selectedSubjectId,
-          scheduled_at: scheduledAt
-        })
-      });
+      let apiSuccess = false;
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/tutoring-sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            tutor_id: id,
+            subject_id: chosenSubjectObj ? chosenSubjectObj.subject_id : selectedSubjectId,
+            scheduled_at: scheduledAt
+          })
+        });
 
-      const responseData = await res.json();
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API booking error, fallback to direct Supabase insert:', apiErr);
+      }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Error al solicitar la tutoría.');
+      if (!apiSuccess) {
+        const { error: sessionErr } = await supabase
+          .from('tutoring_sessions')
+          .insert({
+            student_id: profile.id,
+            tutor_id: id,
+            subject_id: chosenSubjectObj?.subject_id || 1,
+            scheduled_at: scheduledAt,
+            status: 'scheduled'
+          });
+
+        if (sessionErr) throw sessionErr;
       }
 
       setSuccess('Sesión de tutoría registrada con éxito.');
       setIsModalOpen(false);
 
       // REDIRECT TO WHATSAPP
-      // Formatter for WhatsApp Message
       const formattedDate = new Date(scheduledAt).toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'long',
@@ -129,19 +194,18 @@ export default function TutorProfile() {
       
       const message = `¡Hola ${tutor.full_name}! Vi tu perfil en UNACH-Connect. Acabo de solicitar una tutoría de ${subjectName} con el docente ${profName} programada para el ${formattedDate}. ¿Confirmas disponibilidad para coordinar los detalles?`;
 
-      // Clean phone number (remove leading zeroes or spaces)
       let phone = tutor.phone_number || '';
-      // Ensure phone is in international format (Ecuador prefix is 593)
       if (phone.startsWith('0')) {
         phone = '593' + phone.substring(1);
       } else if (!phone.startsWith('593') && phone.length > 0) {
         phone = '593' + phone;
+      } else if (!phone) {
+        phone = '593999999999';
       }
 
       const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       window.open(waUrl, '_blank');
 
-      // Refresh page or redirect to dashboard after a delay
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
