@@ -118,12 +118,6 @@ export default function Landing() {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="landing-footer">
-        <p>© {new Date().getFullYear()} UNACH-Connect. Diseñado para la carrera de Diseño Gráfico.</p>
-        <p className="footer-tagline">"Tu éxito es colectivo"</p>
-      </footer>
     </div>
   );
 }

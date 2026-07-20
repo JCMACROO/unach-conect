@@ -12,25 +12,31 @@ import Contributions from './pages/Contributions';
 import Search from './pages/Search';
 import TutorProfile from './pages/TutorProfile';
 import PartnerRedeem from './pages/PartnerRedeem';
+import Footer from './components/Footer';
 
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/tutor/apply" element={<TutorApply />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/catalog" element={<AdminCatalog />} />
-        <Route path="/contributions" element={<Contributions />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/tutors/:id" element={<TutorProfile />} />
-        <Route path="/partner/redeem" element={<PartnerRedeem />} />
-      </Routes>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/tutor/apply" element={<TutorApply />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/catalog" element={<AdminCatalog />} />
+            <Route path="/contributions" element={<Contributions />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/tutors/:id" element={<TutorProfile />} />
+            <Route path="/partner/redeem" element={<PartnerRedeem />} />
+          </Routes>
+        </div>
+        <Footer />
+      </div>
     </Router>
   );
 }
