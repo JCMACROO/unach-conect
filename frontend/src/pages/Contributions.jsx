@@ -217,29 +217,38 @@ export default function Contributions() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      let errorData = {};
+      let apiSuccess = false;
       try {
-        errorData = await res.json();
-      } catch (e) {
-        console.error('Failed to parse delete contribution JSON:', e);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/contributions/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API delete contribution error, using direct Supabase fallback:', apiErr);
       }
 
-      if (!res.ok) {
-        throw new Error(errorData.error || 'Error al eliminar el aporte.');
+      // Direct Supabase Fallback if API was not used or failed
+      if (!apiSuccess) {
+        const { error: dbErr } = await supabase
+          .from('contributions')
+          .delete()
+          .eq('id', id);
+
+        if (dbErr) throw dbErr;
       }
 
       setSuccess('Aportación eliminada correctamente.');
       setContributions(prev => prev.filter(item => item.id !== id));
     } catch (err) {
-      setError(err.message || 'Error de conexión al eliminar.');
+      console.error('Error deleting contribution:', err);
+      setError(err.message || 'Error al eliminar la aportación.');
     }
   };
 

@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-dark: #0E1526;
+  --bg-dark: #1C2536;
   --primary: #FF5E13;
   --primary-hover: #e04f0d;
-  --glass-surface: rgba(23, 32, 54, 0.90);
-  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-surface: rgba(28, 38, 56, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.20);
   --glass-glow: rgba(255, 94, 19, 0.15);
   --text-primary: #FFFFFF;
   --text-secondary: #E2E8F0;
