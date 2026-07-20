@@ -311,25 +311,61 @@ export default function Dashboard() {
               </>
             ) : (
               <>
-                <h2>Postular como Tutor</h2>
-                <p className="card-desc">¿Aprobaste una materia crítica con excelente nota y deseas ganar créditos ayudando a tus compañeros?</p>
+                <h2>Estado de Postulación a Tutor</h2>
+                <p className="card-desc">Monitorea el progreso de tu solicitud para convertirte en Referente de la Carrera de Diseño Gráfico.</p>
                 
-                <div className={`tutor-badge ${tutorStatus === 'approved' ? 'approved-badge' : 'pending-badge'}`}>
-                  <span>Rol actual: {tutorStatus === 'approved' ? 'Tutor Referente' : 'Alumno'}</span>
-                </div>
- 
-                <div className="tutor-application-promo">
+                <div style={{ marginTop: '10px' }}>
                   {tutorStatus === 'pending' && (
-                    <p style={{ color: 'var(--warning)', fontWeight: 'bold' }}>⚠️ Tu postulación está siendo revisada por la administración.</p>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1.5px solid rgba(245, 158, 11, 0.4)', padding: '16px', borderRadius: '16px' }}>
+                      <div className="tutor-badge pending-badge" style={{ marginBottom: '8px' }}>
+                        <span>🟡 ESTADO: ENVIADA / EN REVISIÓN</span>
+                      </div>
+                      <p style={{ color: '#FCD34D', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                        ⏳ Tu postulación fue recibida. La coordinación académica está revisando tu reporte de calificaciones (Kardex). Te notificaremos al ser aprobada.
+                      </p>
+                    </div>
                   )}
+
                   {tutorStatus === 'approved' && (
-                    <p style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓ ¡Eres un Tutor Aprobado! Ya puedes dictar clases y recibir créditos.</p>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1.5px solid rgba(16, 185, 129, 0.4)', padding: '16px', borderRadius: '16px' }}>
+                      <div className="tutor-badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.25)', color: '#34D399', border: '1px solid #34D399', marginBottom: '8px' }}>
+                        <span>🟢 ESTADO: ACEPTADA (TUTOR OFICIAL)</span>
+                      </div>
+                      <p style={{ color: '#A7F3D0', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
+                        🎉 ¡Felicidades! Tu postulación ha sido ACEPTADA. Ya apareces en la lista oficial de tutores de Diseño Gráfico.
+                      </p>
+                      <Link to="/search" className="btn-primary" style={{ display: 'inline-block', fontSize: '0.85rem', padding: '8px 16px' }}>
+                        Ver Lista de Tutores
+                      </Link>
+                    </div>
                   )}
+
+                  {tutorStatus === 'rejected' && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1.5px solid rgba(239, 68, 68, 0.4)', padding: '16px', borderRadius: '16px' }}>
+                      <div className="tutor-badge" style={{ backgroundColor: 'rgba(239, 68, 68, 0.25)', color: '#FCA5A5', border: '1px solid #EF4444', marginBottom: '8px' }}>
+                        <span>🔴 ESTADO: RECHAZADA</span>
+                      </div>
+                      <p style={{ color: '#FCA5A5', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
+                        Tu solicitud no fue aprobada en esta revisión. Puedes volver a enviar tus documentos cuando cumplas los requisitos.
+                      </p>
+                      <Link to="/tutor/apply" className="btn-primary" style={{ display: 'inline-block', fontSize: '0.85rem', padding: '8px 16px', backgroundColor: '#EF4444' }}>
+                        Reenviar Postulación
+                      </Link>
+                    </div>
+                  )}
+
                   {(!tutorStatus || tutorStatus === 'suspended') && (
-                    <>
-                      <p>Conviértete en "Referente" de la Carrera. Se requiere una nota mínima de 8.5/10 y subir tu reporte de calificaciones (Kardex).</p>
-                      <Link to="/tutor/apply" className="btn-primary">Iniciar Postulación</Link>
-                    </>
+                    <div className="tutor-application-promo" style={{ borderTop: 'none', paddingTop: 0 }}>
+                      <div className="tutor-badge" style={{ backgroundColor: 'rgba(0, 210, 255, 0.15)', color: '#00D2FF', border: '1px solid rgba(0, 210, 255, 0.4)', marginBottom: '8px' }}>
+                        <span>⚪ ESTADO: SIN POSTULAR</span>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px' }}>
+                        Conviértete en "Referente" de la Carrera. Se requiere nota mínima de 8.5/10 y tu reporte de notas (Kardex).
+                      </p>
+                      <Link to="/tutor/apply" className="btn-primary" style={{ display: 'inline-block', textAlign: 'center' }}>
+                        Iniciar Postulación como Tutor
+                      </Link>
+                    </div>
                   )}
                 </div>
               </>

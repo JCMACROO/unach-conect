@@ -28,16 +28,11 @@ export default function Footer() {
           gap: '24px'
         }}
       >
-        {/* Logos Oficiales con tamaño grande */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+        {/* Logo Oficial */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <img 
             src={logoNegativo} 
-            alt="UNACH-Connect Logo Negativo" 
-            style={{ height: '110px', width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }} 
-          />
-          <img 
-            src={logoPositivo} 
-            alt="UNACH-Connect Logo Positivo" 
+            alt="UNACH-Connect Logo" 
             style={{ height: '110px', width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }} 
           />
         </div>

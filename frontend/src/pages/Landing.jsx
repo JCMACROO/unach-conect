@@ -6,6 +6,8 @@ import { supabase } from '../supabaseClient';
 
 export default function Landing() {
   const [user, setUser] = useState(null);
+  const [approvedTutors, setApprovedTutors] = useState([]);
+  const [loadingTutors, setLoadingTutors] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -13,7 +15,37 @@ export default function Landing() {
       setUser(session?.user || null);
     };
 
+    const fetchApprovedTutors = async () => {
+      setLoadingTutors(true);
+      try {
+        const { data, error } = await supabase
+          .from('tutors')
+          .select(`
+            id,
+            bio,
+            portfolio_url,
+            status,
+            users ( full_name, email, avatar_url, phone_number ),
+            tutor_subjects (
+              price_per_hour,
+              subjects ( name ),
+              professors ( name )
+            )
+          `)
+          .eq('status', 'approved');
+
+        if (!error && data) {
+          setApprovedTutors(data);
+        }
+      } catch (err) {
+        console.error('Error fetching approved tutors:', err);
+      } finally {
+        setLoadingTutors(false);
+      }
+    };
+
     checkUser();
+    fetchApprovedTutors();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -30,6 +62,14 @@ export default function Landing() {
     setUser(null);
   };
 
+  const getWhatsAppUrl = (phone, tutorName, subjectName) => {
+    let cleanPhone = phone || '593999999999';
+    if (cleanPhone.startsWith('0')) cleanPhone = '593' + cleanPhone.substring(1);
+    if (!cleanPhone.startsWith('593')) cleanPhone = '593' + cleanPhone;
+    const msg = `Hola ${tutorName}, vi tu perfil en UNACH-Connect y me gustaría agendar una tutoría para la materia ${subjectName || 'Diseño Gráfico'}.`;
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  };
+
   return (
     <div className="landing-container">
       <ParticlesBackground />
@@ -42,6 +82,9 @@ export default function Landing() {
           </Link>
         </div>
         <nav className="landing-nav">
+          <Link to={user ? "/search" : "/login"} className="nav-link" style={{ marginRight: '15px', color: '#00D2FF', fontWeight: 'bold' }}>
+            👥 Tutores
+          </Link>
           {user ? (
             <>
               <Link to="/contributions" className="nav-link" style={{ marginRight: '15px', color: '#FF5E13', fontWeight: 'bold' }}>Foro Académico</Link>
@@ -71,15 +114,104 @@ export default function Landing() {
             {user ? (
               <>
                 <Link to="/dashboard" className="cta-primary">Ir a mi Panel</Link>
-                <Link to="/dashboard" className="cta-secondary">Buscar Tutores</Link>
+                <Link to="/search" className="cta-secondary">Buscar Tutores</Link>
               </>
             ) : (
               <>
                 <Link to="/register" className="cta-primary">Empezar Ahora</Link>
-                <Link to="/login" className="cta-secondary">Buscar Tutores</Link>
+                <Link to="/search" className="cta-secondary">Buscar Tutores</Link>
               </>
             )}
           </div>
+        </section>
+
+        {/* SECTION: TUTORES APROBADOS DE DISEÑO GRÁFICO */}
+        <section className="value-section" style={{ marginTop: '20px' }}>
+          <h2 className="section-title">🎓 Tutores Aprobados de Diseño Gráfico</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '-30px', marginBottom: '40px' }}>
+            Estudiantes referentes verificados con notas superiores a 8.5/10
+          </p>
+
+          {loadingTutors ? (
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando tutores disponibles...</p>
+          ) : approvedTutors.length === 0 ? (
+            <div className="value-card" style={{ textAlign: 'center', padding: '40px' }}>
+              <span style={{ fontSize: '3rem' }}>🌟</span>
+              <h3>No hay tutores registrados aún.</h3>
+              <p>Los tutores aprobados por la coordinación aparecerán aquí automáticamente.</p>
+            </div>
+          ) : (
+            <div className="grid-cards">
+              {approvedTutors.map((tutor) => {
+                const subject = tutor.tutor_subjects?.[0]?.subjects?.name || 'Diseño Gráfico';
+                const professor = tutor.tutor_subjects?.[0]?.professors?.name || 'Docente UNACH';
+                const price = tutor.tutor_subjects?.[0]?.price_per_hour || 5.00;
+                const name = tutor.users?.full_name || 'Tutor Referente';
+                const phone = tutor.users?.phone_number;
+
+                return (
+                  <div key={tutor.id} className="value-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                        <div 
+                          style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            color: '#fff',
+                            fontSize: '1.4rem'
+                          }}
+                        >
+                          {tutor.users?.avatar_url ? (
+                            <img src={tutor.users.avatar_url} alt={name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>{name}</h3>
+                          <span style={{ color: '#10B981', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Tutor Aprobado</span>
+                        </div>
+                      </div>
+
+                      <div style={{ background: 'rgba(0, 210, 255, 0.1)', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
+                        <div style={{ color: '#00D2FF', fontSize: '0.85rem', fontWeight: 'bold' }}>📚 Materia: {subject}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>👨‍🏫 Docente: {professor}</div>
+                      </div>
+
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.5' }}>
+                        {tutor.bio || 'Especialista en tutorías académicas de Diseño Gráfico.'}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <a 
+                        href={getWhatsAppUrl(phone, name, subject)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary"
+                        style={{ flex: '1', minWidth: '130px', textAlign: 'center', backgroundColor: '#25D366', boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)', fontSize: '0.85rem', padding: '10px 14px' }}
+                      >
+                        💬 WhatsApp
+                      </a>
+                      <Link 
+                        to={user ? `/tutors/${tutor.id}` : '/login'}
+                        className="btn-secondary"
+                        style={{ flex: '1', minWidth: '130px', textAlign: 'center', fontSize: '0.85rem', padding: '10px 14px' }}
+                      >
+                        Ver Perfil
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* MOFU: Value Proposition */}

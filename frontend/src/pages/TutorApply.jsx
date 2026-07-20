@@ -104,6 +104,16 @@ export default function TutorApply() {
     setLoading(true);
 
     try {
+      // Helper to convert PDF to base64 Data URL fallback
+      const readFileAsDataURL = (fileToRead) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(fileToRead);
+        });
+      };
+
       // 1. Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -114,16 +124,16 @@ export default function TutorApply() {
         .from('portfolios')
         .upload(filePath, file);
 
-      // Handle if bucket or upload fails (graceful fallback url if bucket not pre-created)
+      // Handle if bucket or upload fails (graceful fallback to self-contained base64 Data URL)
       let publicUrl = '';
       if (uploadError) {
-        console.warn('Storage upload error (creating fallback direct URL):', uploadError);
-        publicUrl = `https://placeholder-storage.supabase.co/portfolios/resumes/${fileName}`;
+        console.warn('Storage upload error (creating base64 Data URL fallback):', uploadError);
+        publicUrl = await readFileAsDataURL(file);
       } else {
         const { data: publicUrlData } = supabase.storage
           .from('portfolios')
           .getPublicUrl(filePath);
-        publicUrl = publicUrlData?.publicUrl || '';
+        publicUrl = publicUrlData?.publicUrl || await readFileAsDataURL(file);
       }
 
       // 2. Submit via Laravel API or direct Supabase Fallback
