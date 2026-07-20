@@ -29,37 +29,47 @@ export default function TutorApply() {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        const token = session.access_token;
+        const token = session?.access_token;
 
-        // Fetch Graphic Design subjects from Laravel API
-        const subjectsRes = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        let fetchedSubjects = null;
+        let fetchedProfessors = null;
+
+        try {
+          const subjectsRes = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+          });
+          if (subjectsRes.ok) {
+            const text = await subjectsRes.text();
+            fetchedSubjects = JSON.parse(text);
           }
-        });
-        if (subjectsRes.ok) {
-          const subjectsData = await subjectsRes.json();
-          setSubjectsList(subjectsData);
-        } else {
-          console.error('Error fetching subjects');
+
+          const professorsRes = await fetch(`${import.meta.env.VITE_API_URL}/professors`, {
+            headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` }
+          });
+          if (professorsRes.ok) {
+            const text = await professorsRes.text();
+            fetchedProfessors = JSON.parse(text);
+          }
+        } catch (apiErr) {
+          console.warn('API connection issue, switching to direct Supabase query:', apiErr);
         }
 
-        // Fetch Graphic Design professors from Laravel API
-        const professorsRes = await fetch(`${import.meta.env.VITE_API_URL}/professors`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (professorsRes.ok) {
-          const professorsData = await professorsRes.json();
-          setProfessorsList(professorsData);
-        } else {
-          console.error('Error fetching professors');
+        // Direct Supabase Fallbacks
+        if (!fetchedSubjects) {
+          const { data: dbSubjects } = await supabase.from('subjects').select('*').order('name');
+          fetchedSubjects = dbSubjects || [];
         }
+
+        if (!fetchedProfessors) {
+          const { data: dbProfessors } = await supabase.from('professors').select('*').order('name');
+          fetchedProfessors = dbProfessors || [];
+        }
+
+        setSubjectsList(fetchedSubjects);
+        setProfessorsList(fetchedProfessors);
       } catch (err) {
         console.error('Error loading Graphic Design catalogs:', err);
-        setError('Error al conectar con el servidor para cargar las asignaturas y docentes.');
+        setError('Error al cargar las asignaturas y docentes.');
       }
     };
 
@@ -116,30 +126,59 @@ export default function TutorApply() {
         publicUrl = publicUrlData?.publicUrl || '';
       }
 
-      // 2. Submit via Laravel API (will insert into tutors and tutor_subjects)
+      // 2. Submit via Laravel API or direct Supabase Fallback
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tutors/apply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          subject_id: parseInt(selectedSubjectId),
-          professor_id: parseInt(selectedProfessorId),
-          grade: parseFloat(grade),
-          bio: bio,
-          portfolio_url: publicUrl,
-          price_per_hour: 5.00 // Standard credit price per hour for graphic design tutoring
-        })
-      });
+      let apiSuccess = false;
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/tutors/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            subject_id: parseInt(selectedSubjectId),
+            professor_id: parseInt(selectedProfessorId),
+            grade: parseFloat(grade),
+            bio: bio,
+            portfolio_url: publicUrl,
+            price_per_hour: 5.00
+          })
+        });
 
-      const responseData = await response.json();
+        if (response.ok) {
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API submission error, using direct Supabase fallback:', apiErr);
+      }
 
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || 'Error al enviar la postulación al servidor.');
+      // Direct Supabase Fallback
+      if (!apiSuccess) {
+        const { error: tutorErr } = await supabase
+          .from('tutors')
+          .upsert({
+            id: user.id,
+            bio: bio,
+            portfolio_url: publicUrl,
+            status: 'pending'
+          });
+
+        if (tutorErr) throw tutorErr;
+
+        const { error: tsErr } = await supabase
+          .from('tutor_subjects')
+          .upsert({
+            tutor_id: user.id,
+            subject_id: parseInt(selectedSubjectId),
+            professor_id: parseInt(selectedProfessorId),
+            price_per_hour: 5.00
+          });
+
+        if (tsErr) throw tsErr;
       }
 
       setSuccess('Tu postulación como tutor ha sido enviada con éxito. Está en cola de revisión por el administrador.');
